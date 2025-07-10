@@ -12,7 +12,7 @@ import ete3
 from ete3 import NCBITaxa, TreeStyle, PieChartFace, faces
 import argparse
 import warnings
-
+import math
 ###########################################################
 warnings.filterwarnings("ignore")
 
@@ -24,12 +24,12 @@ args = my_parser.parse_args()
 f_name = args.input
 og = args.outgroup
 
-#f_name = "y.csv"
-#og = "deinococcus_radiodurans"
+f_name = "2029_30_mi.csv"
+og = "deinococcus_radiodurans"
 try:
-    Entrez.email = 'drahmed@gmail.com'
-    df = pd.read_csv(f_name, header=None,on_bad_lines='skip')
-    
+    Entrez.email = 'drahmedelsherbini@gmail.com'
+    df = pd.read_csv(f_name, header=None,error_bad_lines=False)
+    #Take care of error_bad_line and numpy update
     
     if df[0].iloc[0] == 'Description':
         df.rename(columns=df.iloc[0], inplace = True)
@@ -83,6 +83,7 @@ try:
     ncbi = NCBITaxa()
     species_taxids = {}
     species_names = pd.Series(df["Species"])
+    species_names = species_names[~species_names.str.contains("sp.", regex=False)]
     
     # Add outlier if provided
     if og:
@@ -95,6 +96,8 @@ try:
     
     taxa_ids = [taxid for taxid in species_taxids.values() if taxid]
     tree = ncbi.get_topology(taxa_ids)
+    #qc,this to help me, shall print numbers
+    #print(tree)
     
     def annotate_tree_with_scientific_names(tree):
         for node in tree.traverse():
@@ -104,13 +107,17 @@ try:
                 node.name = scientific_name if scientific_name else "Unknown"
     
     annotate_tree_with_scientific_names(tree)
-    
+    print(tree)
+ 
     output_file = "%s_tree.nwk" % (f_name[:-4])
     tree.write(outfile=output_file)
     
     # Prepare data for pie charts
     df1 = df[['Species', '%_in_assembly_db']]
     pie_data = df1.set_index('Species')['%_in_assembly_db'].to_dict()
+    pie_data = {k: v for k, v in pie_data.items() if "sp." not in k}
+    pie_data = {k: v for k, v in pie_data.items() if "Species" not in k}
+    pie_data = {k: v for k, v in pie_data.items() if not math.isinf(v)}
     
     def layout(node):
         if node.is_leaf() and node.name in pie_data:
@@ -123,7 +130,7 @@ try:
     ts.layout_fn = layout
     ts.show_leaf_name = True
     #ts.title.add_face(faces.TextFace("Phylogenetic Tree with Pie Charts", fsize=12), column=0)
-    
+
     tree.render("%s_tree_with_pies.pdf" % (f_name[:-4]), tree_style=ts)
     print("Tree with pie charts rendered successfully!")
 
