@@ -24,8 +24,8 @@ args = my_parser.parse_args()
 f_name = args.input
 og = args.outgroup
 
-f_name = "2029_30_mi.csv"
-og = "deinococcus_radiodurans"
+#f_name = "2029_30_mi.csv"
+#og = "deinococcus_radiodurans"
 try:
     Entrez.email = 'drahmedelsherbini@gmail.com'
     df = pd.read_csv(f_name, header=None,error_bad_lines=False)
