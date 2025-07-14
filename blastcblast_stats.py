@@ -28,8 +28,12 @@ og = args.outgroup
 #og = "deinococcus_radiodurans"
 try:
     Entrez.email = 'drahmedelsherbini@gmail.com'
-    df = pd.read_csv(f_name, header=None,error_bad_lines=False)
-    #Take care of error_bad_line and numpy update
+    try:
+    # Try using the deprecated parameter (for older versions of pandas)
+     df = pd.read_csv(f_name, header=None, error_bad_lines=False)
+    except TypeError:
+    # If error_bad_lines is not accepted (pandas >= 2.0), use the updated syntax
+     df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
     
     if df[0].iloc[0] == 'Description':
         df.rename(columns=df.iloc[0], inplace = True)
