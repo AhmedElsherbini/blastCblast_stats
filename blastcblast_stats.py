@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Original author : Ahmed Elsherbini 
-Date 20-11-2024
+Original author: Ahmed Elsherbini
+Date: 20-11-2024
 Spyder Editor
 """
-###########################################################
 
+###########################################################
 import pandas as pd
 from Bio import Entrez
 import ete3
@@ -14,61 +14,77 @@ import argparse
 import warnings
 import math
 ###########################################################
+
 warnings.filterwarnings("ignore")
 
-my_parser = argparse.ArgumentParser(description='Hello!')
-my_parser.add_argument('-i', '--input', action='store', metavar='input', type=str, help='the path to your file')
-my_parser.add_argument('-og', '--outgroup', action='store', metavar='outgroup', type=str, help='the name to your outgroup species')
-
+# ----------------------- ARGUMENT PARSING ----------------------- #
+my_parser = argparse.ArgumentParser(description='NCBI Species Tree Builder with Duplicates Filtering')
+my_parser.add_argument('-i', '--input', metavar='input', type=str, required=False, help='Path to input CSV file')
+my_parser.add_argument('-og', '--outgroup', metavar='outgroup', type=str, required=False, help='Outgroup species (optional)')
+my_parser.add_argument('-m', '--mode', metavar='mode', type=str, choices=['strict', 'relaxed'], default='relaxed', help='Mode to handle duplicates: strict or relaxed')
 args = my_parser.parse_args()
+
+# ----------------------- DEV MODE (Optional for Debugging) ----------------------- #
+# Uncomment the following lines to test without command-line arguments
+# args.input = "2029_30_mi.csv"
+# args.outgroup = "deinococcus_radiodurans"
+# args.mode = "strict"
+
+# ----------------------- MAIN VARIABLES ----------------------- #
 f_name = args.input
 og = args.outgroup
+mode = args.mode
+
+#
 
 #f_name = "2029_30_mi.csv"
 #og = "deinococcus_radiodurans"
+#mode = "strict"
+
+#
 try:
     Entrez.email = 'drahmedelsherbini@gmail.com'
-    try:
-    # Try using the deprecated parameter (for older versions of pandas)
-     df = pd.read_csv(f_name, header=None, error_bad_lines=False)
-    except TypeError:
-    # If error_bad_lines is not accepted (pandas >= 2.0), use the updated syntax
-     df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
-    
+
+    # ----------------------- READ CSV FILE ----------------------- #
+    if mode == 'strict':
+        try:
+            df = pd.read_csv(f_name, header=None, error_bad_lines=False)
+            df.drop_duplicates(subset=df.columns[0], keep='first', inplace=True)
+        except TypeError:
+            df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
+            df.drop_duplicates(subset=df.columns[0], keep='first', inplace=True)
+
+    elif mode == 'relaxed':
+        try:
+            df = pd.read_csv(f_name, header=None, error_bad_lines=False)
+        except TypeError:
+            df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
+
+    # ----------------------- PROCESS DATA ----------------------- #
     if df[0].iloc[0] == 'Description':
-        df.rename(columns=df.iloc[0], inplace = True)
-        df['Scientific Name'] = df['Scientific Name'].apply(lambda x: ' '.join(str(x).split()[:2]) if isinstance(x, str) else str(x))    
+        df.rename(columns=df.iloc[0], inplace=True)
+        df['Scientific Name'] = df['Scientific Name'].apply(lambda x: ' '.join(str(x).split()[:2]) if isinstance(x, str) else str(x))
         df = df['Scientific Name'].value_counts().reset_index()
         df.columns = ['Species', 'count']
-        substring = 'Scientific Name'
-        filterx = df['Species'].str.contains(substring)
-        df = df[~filterx]
-        substring = 'sp.'
-        filterx = df['Species'].str.contains(substring)
-        substring = 'nan'
-        filterx = df['Species'].str.contains(substring)
-        df = df[~filterx]
-        
+        df = df[~df['Species'].str.contains('Scientific Name', regex=False)]
+        df = df[~df['Species'].str.contains('sp.', regex=False)]
+        df = df[~df['Species'].str.contains('nan', regex=False)]
         assmebly = []
-        print("I think this is a NCBI blast input")
-    
+        print("Detected NCBI Blast input format.")
+
     else:
         df = df.iloc[:, 0].to_frame()
         df = df[0].str.split().str[:2].str.join(' ').to_frame()
-        df = df[0].value_counts().to_frame()
-        df = df.reset_index()
+        df = df[0].value_counts().reset_index()
         df.columns = ['Species', 'count']
-        substring = 'sp.'
-        filterx = df['Species'].str.contains(substring)
-        substring = 'nan'
-        filterx = df['Species'].str.contains(substring)
-        df = df[~filterx]
+        df = df[~df['Species'].str.contains('sp.', regex=False)]
+        df = df[~df['Species'].str.contains('nan', regex=False)]
         assmebly = []
-        print("I think this is a Cblaster input")
-    
-    
-    print("And this is blastCblast_stats (Ahmed Elsherbini)")
-    
+        print("Detected Cblaster input format.")
+
+    print("Running blastCblast_stats (Ahmed Elsherbini)")
+
+    # ----------------------- NCBI Assembly Query ----------------------- #
     for row in df['Species']:
         species_name = str(row)
         handle = Entrez.esearch(db="assembly", term=species_name, retmode="xml")
@@ -76,67 +92,61 @@ try:
         count = int(record['Count'])
         print(f"Number of {species_name} occurrences in NCBI assembly database: {count}")
         assmebly.append(count)
-    
+
     df['assembly'] = assmebly
     df['%_in_assembly_db'] = df['count'] / df['assembly'] * 100
-    file_name = 'database_percentage_%s.csv' % (f_name[:-4])
+    file_name = f'database_percentage_{f_name[:-4]}.csv'
     df.to_csv(file_name, index=False)
-    print("Done for the database file")
-    
-    # Taxonomy retrieval and tree generation
+    print("Saved database statistics to:", file_name)
+
+    # ----------------------- TAXONOMY TREE ----------------------- #
     ncbi = NCBITaxa()
     species_taxids = {}
     species_names = pd.Series(df["Species"])
     species_names = species_names[~species_names.str.contains("sp.", regex=False)]
-    
-    # Add outlier if provided
+
     if og:
         og = og.replace("_", " ")
         species_names.loc[len(species_names)] = og
-    
+
     for species_name in species_names:
         taxid = ncbi.get_name_translator([species_name])
         species_taxids[species_name] = taxid[species_name][0] if taxid else None
-    
+
     taxa_ids = [taxid for taxid in species_taxids.values() if taxid]
     tree = ncbi.get_topology(taxa_ids)
-    #qc,this to help me, shall print numbers
-    #print(tree)
-    
+
     def annotate_tree_with_scientific_names(tree):
         for node in tree.traverse():
             if node.is_leaf():
                 taxid = int(node.name)
                 scientific_name = ncbi.get_taxid_translator([taxid]).get(taxid)
                 node.name = scientific_name if scientific_name else "Unknown"
-    
+
     annotate_tree_with_scientific_names(tree)
     print(tree)
- 
-    output_file = "%s_tree.nwk" % (f_name[:-4])
+
+    output_file = f"{f_name[:-4]}_tree.nwk"
     tree.write(outfile=output_file)
-    
-    # Prepare data for pie charts
+
+    # ----------------------- PIE CHART TREE ----------------------- #
     df1 = df[['Species', '%_in_assembly_db']]
     pie_data = df1.set_index('Species')['%_in_assembly_db'].to_dict()
-    pie_data = {k: v for k, v in pie_data.items() if "sp." not in k}
-    pie_data = {k: v for k, v in pie_data.items() if "Species" not in k}
-    pie_data = {k: v for k, v in pie_data.items() if not math.isinf(v)}
-    
+    pie_data = {k: v for k, v in pie_data.items() if "sp." not in k and "Species" not in k and not math.isinf(v)}
+
     def layout(node):
         if node.is_leaf() and node.name in pie_data:
             pie_values = [pie_data[node.name], 100 - pie_data[node.name]]
             colors = ["green", "lightgray"]
             pie_face = PieChartFace(pie_values, colors=colors, width=50, height=50)
             faces.add_face_to_node(pie_face, node, column=1)
-    
+
     ts = TreeStyle()
     ts.layout_fn = layout
     ts.show_leaf_name = True
-    #ts.title.add_face(faces.TextFace("Phylogenetic Tree with Pie Charts", fsize=12), column=0)
 
-    tree.render("%s_tree_with_pies.pdf" % (f_name[:-4]), tree_style=ts)
+    tree.render(f"{f_name[:-4]}_tree_with_pies.pdf", tree_style=ts)
     print("Tree with pie charts rendered successfully!")
 
 except Exception as e:
-   print("An error occurred:", e)
+    print("An error occurred:", e)
