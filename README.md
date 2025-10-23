@@ -55,10 +55,13 @@ Well, for [ete3](http://etetoolkit.org/download/), I recommend installing it via
 Currently, there are three files.
 
 1. database_percentage_*your_file*.csv (The main output where you can find for each species the count of this species in the binary file, the number of assembled genomes per NCBI assembly database, and the percentage of (count/assembly)*100. 
-2. *your_file*_tree.nwk. If you would like to take this tree to a visualization tool (iTOL,FigTree,..)
+2. *your_file*_tree.nwk. If you would like to take this tree to a visualization tool (iTOL, FigTree,..)
 3. *your_file*_tree.pdf. This is just a basic tree that links your isolates together, but with a pie chart that shows the results of file number 1.
    ![alt text](https://github.com/AhmedElsherbini/Cblaster_stats/blob/main/example_binary_tree_with_pies-1.png)
-
 I hope this helps.
+
+Or using the ete3 minimum tree nwk [ITOL](https://itol.embl.de/), I can make a publication-quality figure like this 
+   ![alt text](https://github.com/AhmedElsherbini/blastCblast_stats/blob/main/Itol_output.png)
+
 
 Thanks
