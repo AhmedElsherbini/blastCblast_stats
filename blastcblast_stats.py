@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Original author: Ahmed Elsherbini
-Date: 20-11-2024
+Date: 23-10-2025
 Spyder Editor
 """
 
@@ -37,9 +37,13 @@ mode = args.mode
 
 #
 
-#f_name = "2029_30_mi.csv"
+#f_name = "novel.csv"
 #og = "deinococcus_radiodurans"
 #mode = "strict"
+
+
+
+    
 
 #
 try:
@@ -50,17 +54,28 @@ try:
         try:
             df = pd.read_csv(f_name, header=None, error_bad_lines=False)
             df.drop_duplicates(subset=df.columns[0], keep='first', inplace=True)
+            print("We are in the strict mode with old pandas")
         except TypeError:
             df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
             df.drop_duplicates(subset=df.columns[0], keep='first', inplace=True)
+            print("We are in the strict mode with the new pandas ")
 
+
+#no drop of duplicates here 
     elif mode == 'relaxed':
         try:
             df = pd.read_csv(f_name, header=None, error_bad_lines=False)
+            print("We are in the relaxed mode with old pandas")
+
+
         except TypeError:
             df = pd.read_csv(f_name, header=None, on_bad_lines='skip')
+            print("We are in the relaxed mode with new pandas")
+
+
 
     # ----------------------- PROCESS DATA ----------------------- #
+    #as a marker for blastN 
     if df[0].iloc[0] == 'Description':
         df.rename(columns=df.iloc[0], inplace=True)
         df['Scientific Name'] = df['Scientific Name'].apply(lambda x: ' '.join(str(x).split()[:2]) if isinstance(x, str) else str(x))
@@ -70,7 +85,22 @@ try:
         df = df[~df['Species'].str.contains('sp.', regex=False)]
         df = df[~df['Species'].str.contains('nan', regex=False)]
         assmebly = []
-        print("Detected NCBI Blast input format.")
+        print("Detected NCBI (BlastN) input format.")
+    
+    #as a marker for blastp results
+
+    elif df[0].iloc[0] == 'Cluster Composition':
+       df.rename(columns=df.iloc[0], inplace=True)
+       df["Species"] = df["Representative sequence"].str.extract(r"\[([^\]]+)\]")
+       df = df['Species'].value_counts().reset_index()
+       df.columns = ['Species', 'count']
+       df = df[~df['Species'].str.contains('Representative sequence', regex=False)]
+       df = df[~df['Species'].str.contains('sp.', regex=False)]
+       df = df[~df['Species'].str.contains('nan', regex=False)]
+       df = df[~df['Species'].str.contains('bacterium', regex=False)]
+       assmebly = []
+       print("Detected NCBI (Blastp) input format.")
+
 
     else:
         df = df.iloc[:, 0].to_frame()
@@ -80,9 +110,9 @@ try:
         df = df[~df['Species'].str.contains('sp.', regex=False)]
         df = df[~df['Species'].str.contains('nan', regex=False)]
         assmebly = []
-        print("Detected Cblaster input format.")
+        print("Detected (Cblaster) input format.")
 
-    print("Running blastCblast_stats (Ahmed Elsherbini)")
+    print("Running blastCblast_stats 2025 (Ahmed Elsherbini)")
 
     # ----------------------- NCBI Assembly Query ----------------------- #
     for row in df['Species']:
