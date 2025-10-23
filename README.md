@@ -60,7 +60,7 @@ Currently, there are three files.
    ![alt text](https://github.com/AhmedElsherbini/Cblaster_stats/blob/main/example_binary_tree_with_pies-1.png)
 I hope this helps.
 
-Or using the ete3 minimum tree nwk and [ITOL](https://itol.embl.de/), I can make a publication-quality figure like this 
+Or using the ete3 minimum nwk tree and [ITOL](https://itol.embl.de/), I can make a publication-quality figure like this 
    ![alt text](https://github.com/AhmedElsherbini/blastCblast_stats/blob/main/Itol_output.png)
 
 
