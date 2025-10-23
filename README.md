@@ -29,11 +29,14 @@ PS: <code>hs</code> is handy if you have a lot of results due to low coverage <c
 So, type this command effortlessly.
 
 ```bash
- python blastcblast_stats.py -i  example_cblaster_binary.csv -og deinococcus_radiodurans
+ python blastcblast_stats.py -i  example_blastn_binary.csv -m strict -og deinococcus_radiodurans
+```
+```bash
+ python blastcblast_stats.py -i  example_blastp_binary.csv -m strict -og deinococcus_radiodurans
 ```
 
 ```bash
- python blastcblast_stats.py -i  example_cblaster_binary.csv -og deinococcus_radiodurans
+ python blastcblast_stats.py -i  example_cblaster_binary.csv -m strict -og deinococcus_radiodurans
 ```
 "-i /--input_dir"  is your path to the directory for your <**BlastN, P ,or Cblaster binary file**>  
 
