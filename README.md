@@ -9,8 +9,12 @@ Then, it will efetch the number of the assembled genomes per species (via Biopyt
 Finally, this script will draw the smallest tree (based on ete3 definition) based on the pre-defined NCBI taxonomy among your species using [ete3 toolkit](http://etetoolkit.org/docs/latest/tutorial/index.html). Finally, merging the results of the database as a pie chart with the tree will give you a nice visualization.
 
 **What do you need?**
+>>>For NCBI BlastN (protein) users, you need the description CSV table as explained here,
 
->>>For NCBI Blast (DNA or protein) users, you need the description CSV table as explained here,
+![alt text](https://github.com/AhmedElsherbini/blastCblast_stats/blob/main/blastp_update.png)
+
+
+>>>For NCBI BlastN (DNA) users, you need the description CSV table as explained here,
 
 ![alt text](https://github.com/AhmedElsherbini/blastCblast_stats/blob/main/Ncbi_blast.png)
 
